@@ -1,22 +1,30 @@
 // Palette de couleurs — Kaskad
-// Primaire : Indigo/bleu-violet (identité de marque, logo, app client)
+// Primaire : Bleu (haut du logo, forme principale)
+// Accent : Cyan (milieu du dégradé, liens/interactions)
+// Tertiaire : Violet (bas de la cascade, touches d'accent rares)
 // Neutres : Slate (console admin, fonds, textes)
-// Accent : Cyan (call-to-action, liens, éléments interactifs)
 
 const palette = {
     primary: {
-        lighter: "#818CF8",
-        light: "#6366F1",
-        DEFAULT: "#4F46E5",
-        dark: "#4338CA",
-        darker: "#3730A3",
+        lighter: "#5B9CFF",
+        light: "#3E7BFF",
+        DEFAULT: "#2F6BFF",
+        dark: "#1E4FD6",
+        darker: "#1739A6",
     },
     accent: {
-        lighter: "#67E8F9",
-        light: "#22D3EE",
-        DEFAULT: "#06B6D4",
-        dark: "#0891B2",
-        darker: "#0E7490",
+        lighter: "#7BF0FA",
+        light: "#3DE3F0",
+        DEFAULT: "#22D3EE",
+        dark: "#0EA5C4",
+        darker: "#0B7F99",
+    },
+    tertiary: {
+        lighter: "#B794F6",
+        light: "#9F5FEE",
+        DEFAULT: "#8B3CE8",
+        dark: "#6D28D9",
+        darker: "#5B21B6",
     },
     neutral: {
         50: "#F8FAFC",
@@ -52,7 +60,8 @@ const palette = {
         border: "#334155",
     },
     gradient: {
-        brand: ["#4F46E5", "#06B6D4"],
+        brand: ["#2F6BFF", "#22D3EE", "#8B3CE8"],
+        brandShort: ["#2F6BFF", "#22D3EE"],
     },
 };
 

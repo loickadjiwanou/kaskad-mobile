@@ -1,0 +1,59 @@
+{
+  "name": "kaskad-desktop",
+  "productName": "Kaskad",
+  "version": "1.0.0",
+  "description": "Kaskad — store d'applications (client desktop)",
+  "main": "main.js",
+  "private": true,
+  "license": "0BSD",
+  "scripts": {
+    "start": "electron .",
+    "dev": "KASKAD_DEV_URL=http://localhost:8081 electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.kaskad.store",
+    "productName": "Kaskad",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "web-build/**/*",
+      "build/icon.png"
+    ],
+    "artifactName": "Kaskad-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "maintainer": "Kaskad"
+    }
+  },
+  "devDependencies": {
+    "electron": "^38",
+    "electron-builder": "^26"
+  }
+}

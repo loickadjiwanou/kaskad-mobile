@@ -1,28 +1,60 @@
 {
   "expo": {
-    "name": "kaskad-mobile",
+    "name": "Kaskad",
     "slug": "kaskad-mobile",
-    "scheme": "kaskad-mobile",
+    "scheme": "kaskad",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icons/kaskad.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/icons/kaskad_transparent.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kaskad.store",
+      "infoPlist": {
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true,
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait"
+        ],
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown"
+        ]
+      },
+      "requireFullScreen": true
     },
     "android": {
+      "package": "com.kaskad.store",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/icons/kaskad.png",
-        "backgroundImage": "./assets/icons/kaskad.png",
-        "monochromeImage": "./assets/icons/kaskad.png"
-      }
+        "backgroundColor": "#0F172A",
+        "foregroundImage": "./assets/icons/kaskad_transparent.png",
+        "monochromeImage": "./assets/icons/kaskad_transparent.png"
+      },
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
+      "bundler": "metro",
+      "output": "single",
       "favicon": "./assets/icons/kaskad.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icons/kaskad_transparent.png",
+          "color": "#2F6BFF"
+        }
+      ],
+      "expo-localization",
+      "expo-font"
     ]
   }
 }
