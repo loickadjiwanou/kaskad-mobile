@@ -47,3 +47,7 @@ desktop/release/
 
 # local env
 .env
+
+# Firebase service account keys (backend only, never commit)
+*firebase-adminsdk*.json
+service-account*.json

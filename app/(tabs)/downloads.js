@@ -245,7 +245,6 @@ export default function Downloads() {
 }
 
 const styles = StyleSheet.create({
-    list: { paddingHorizontal: spacing.lg, gap: spacing.md },
     card: { gap: spacing.md },
     head: { flexDirection: "row", alignItems: "center", gap: spacing.md },
     meta: { flexDirection: "row", alignItems: "center", gap: spacing.sm, flexWrap: "wrap" },
