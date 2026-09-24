@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { FlatList, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/components/Text";
 import { useLocalSearchParams } from "expo-router";
 import { api } from "@/api";
@@ -16,6 +16,9 @@ import { compatibleFirst, detectPlatform, PLATFORMS } from "@/lib/platform";
 import { useAsync } from "@/lib/useAsync";
 import { font, spacing, useTheme } from "@/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Résultats chargés par pages : la suite arrive automatiquement en fin de liste
+const PAGE_SIZE = 30;
 
 const SORTS = [
     { id: "popular", label: "search.sortPopular", icon: "fire" },
@@ -52,14 +55,39 @@ export default function Search() {
         if (params.sort) setSort(params.sort);
     }, [params.sort]);
 
+    const filters = { q, category_id: categoryId ?? undefined, platform: platform ?? undefined, sort };
     const { data, error, loading, reload } = useAsync(
-        () => api.listApps({ q, category_id: categoryId ?? undefined, platform: platform ?? undefined, sort, limit: 50 }),
+        () => api.listApps({ ...filters, page: 1, limit: PAGE_SIZE }),
         [q, categoryId, platform, sort],
     );
-    const items = useMemo(
-        () => (platform || sort === "name" ? (data?.items ?? []) : compatibleFirst(data?.items ?? [])),
-        [data, platform, sort],
-    );
+
+    // Pages suivantes (réinitialisées à chaque nouvelle recherche)
+    const [more, setMore] = useState({ items: [], page: 1, loading: false });
+    const generation = useRef(0);
+    useEffect(() => {
+        generation.current += 1;
+        setMore({ items: [], page: 1, loading: false });
+    }, [data]);
+
+    const items = useMemo(() => {
+        const first = data?.items ?? [];
+        // Apps compatibles avec l'appareil en tête de la première page (sauf filtre plateforme ou tri alphabétique)
+        return [...(platform || sort === "name" ? first : compatibleFirst(first)), ...more.items];
+    }, [data, more.items, platform, sort]);
+    const hasMore = !!data && items.length < data.total;
+
+    const loadMore = async () => {
+        if (!hasMore || more.loading || loading) return;
+        const gen = generation.current;
+        setMore((m) => ({ ...m, loading: true }));
+        try {
+            const next = await api.listApps({ ...filters, page: more.page + 1, limit: PAGE_SIZE });
+            if (gen !== generation.current) return; // recherche modifiée entre-temps
+            setMore((m) => ({ items: [...m.items, ...next.items], page: m.page + 1, loading: false }));
+        } catch {
+            if (gen === generation.current) setMore((m) => ({ ...m, loading: false }));
+        }
+    };
 
     const header = (
         <View style={styles.filters}>
@@ -126,6 +154,9 @@ export default function Search() {
                     onScroll={onScroll}
                     scrollEventThrottle={16}
                     contentContainerStyle={{ paddingBottom: tabBarInset }}
+                    onEndReached={loadMore}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={more.loading ? <ActivityIndicator color={t.primary} style={styles.footer} /> : null}
                     ListEmptyComponent={
                         loading ? (
                             <Loading />
@@ -147,4 +178,5 @@ const styles = StyleSheet.create({
     filters: { gap: spacing.md, paddingBottom: spacing.sm },
     pad: { paddingHorizontal: spacing.lg },
     chips: { paddingHorizontal: spacing.lg, gap: spacing.sm },
+    footer: { paddingVertical: spacing.lg },
 });

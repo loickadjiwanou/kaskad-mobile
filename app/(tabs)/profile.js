@@ -13,9 +13,9 @@ import Screen from "@/components/Screen";
 import ScreenHeader from "@/components/ScreenHeader";
 import SectionHeader from "@/components/SectionHeader";
 import { LANGUAGE_NAMES, LANGUAGES, useI18n } from "@/i18n";
-import { confirm } from "@/lib/dialog";
+import { confirm, toast } from "@/lib/dialog";
 import { detectPlatform, formatLabel, platformLabel } from "@/lib/platform";
-import { logout } from "@/services/account";
+import { deleteAccount, logout, unregisterPushToken } from "@/services/account";
 import { enableNotifications } from "@/services/preferences";
 import { useAuthStore } from "@/store/auth";
 import { useLibraryStore } from "@/store/library";
@@ -84,10 +84,39 @@ export default function Profile() {
     } = useSettingsStore();
     const device = detectPlatform();
 
-    const toggleNotifications = (value) => (value ? enableNotifications() : setNotificationsEnabled(false));
+    const toggleNotifications = (value) => {
+        if (value) return enableNotifications();
+        setNotificationsEnabled(false);
+        // Le serveur n'envoie plus de notifications à cet appareil
+        unregisterPushToken().catch(() => {});
+    };
 
     const doLogout = async () => {
-        if (await confirm(tr("profile.logoutTitle"), tr("profile.logoutMessage"), { confirmText: tr("profile.logout"), destructive: true })) logout();
+        if (
+            !(await confirm(tr("profile.logoutTitle"), tr("profile.logoutMessage"), {
+                confirmText: tr("profile.logout"),
+                destructive: true,
+            }))
+        )
+            return;
+        await logout();
+        toast(tr("profile.loggedOut"));
+    };
+
+    const doDeleteAccount = async () => {
+        if (
+            !(await confirm(tr("profile.deleteTitle"), tr("profile.deleteMessage"), {
+                confirmText: tr("profile.deleteAccount"),
+                destructive: true,
+            }))
+        )
+            return;
+        try {
+            await deleteAccount();
+            toast(tr("profile.deleted"), { type: "success" });
+        } catch (e) {
+            toast(`${tr("profile.deleteFailed")} : ${e.message}`, { type: "error" });
+        }
     };
 
     return (
@@ -183,7 +212,12 @@ export default function Profile() {
                         }
                         right={
                             androidDownloadDirUri ? (
-                                <Button title={tr("profile.change")} size="sm" variant="ghost" onPress={() => setAndroidDownloadDirUri(null)} />
+                                <Button
+                                    title={tr("profile.change")}
+                                    size="sm"
+                                    variant="ghost"
+                                    onPress={() => setAndroidDownloadDirUri(null)}
+                                />
                             ) : null
                         }
                     />
@@ -210,6 +244,15 @@ export default function Profile() {
                     subtitle={`Kaskad ${Constants.expoConfig?.version ?? ""}${USE_MOCK ? ` · ${tr("profile.demo")}` : ""}`}
                 />
                 {user && <ListItem icon="logout" title={tr("profile.logout")} danger onPress={doLogout} chevron={false} />}
+                {user && (
+                    <ListItem
+                        icon="account-remove-outline"
+                        title={tr("profile.deleteAccount")}
+                        danger
+                        onPress={doDeleteAccount}
+                        chevron={false}
+                    />
+                )}
             </Card>
         </Screen>
     );

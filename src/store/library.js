@@ -67,6 +67,7 @@ export const useLibraryStore = create(
                 ),
 
             replaceAll: ({ favorites, installed, followed }) => set({ favorites, installed, followed }),
+            clearFavorites: () => set({ favorites: {} }),
         }),
         { name: "kaskad.library", storage: persistStorage },
     ),

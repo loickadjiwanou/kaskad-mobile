@@ -1,5 +1,5 @@
 import { API_PREFIX, API_URL } from "./config";
-import { t } from "@/i18n";
+import { getLanguage, t } from "@/i18n";
 import { useAuthStore } from "@/store/auth";
 
 export class ApiError extends Error {
@@ -48,7 +48,8 @@ async function refreshSession() {
 
 export async function request(path, { method = "GET", params, body, retry = true } = {}) {
     const { accessToken } = useAuthStore.getState();
-    const headers = { Accept: "application/json" };
+    // La langue permet au backend de renvoyer ses messages d'erreur en français ou en anglais
+    const headers = { Accept: "application/json", "Accept-Language": getLanguage() };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 

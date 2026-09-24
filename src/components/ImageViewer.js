@@ -3,7 +3,7 @@ import { FlatList, Platform, StyleSheet, useWindowDimensions, View } from "react
 import { Image } from "expo-image";
 import * as NavigationBar from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useI18n } from "@/i18n";
 import { spacing } from "@/theme";
 import IconButton from "./IconButton";
@@ -15,6 +15,7 @@ import { Text } from "./Text";
  * Desktop : flèches précédent / suivant, touches ← → et Échap.
  */
 export default function ImageViewer({ screenshots, index, onIndexChange, onClose }) {
+    const insets = useSafeAreaInsets();
     const { t: tr } = useI18n();
 
     // Android : mode immersif pendant la visionneuse (barre de navigation masquée, réaffichable d'un glissement
@@ -51,7 +52,14 @@ export default function ImageViewer({ screenshots, index, onIndexChange, onClose
     }, [screenshots.length]);
 
     return (
-        <SafeAreaView style={styles.viewer}>
+        // Marges de sécurité lues depuis le fournisseur racine : dans un modal natif iOS (transparentModal),
+        // SafeAreaView ne reçoit pas les insets et le haut passait sous la barre d'état.
+        <View
+            style={[
+                styles.viewer,
+                { paddingTop: insets.top || spacing.md, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right },
+            ]}
+        >
             {/* Icônes claires sur le fond sombre de la visionneuse */}
             <StatusBar style="light" />
             <View style={styles.viewerTop}>
@@ -102,7 +110,7 @@ export default function ImageViewer({ screenshots, index, onIndexChange, onClose
                     />
                 )}
             </View>
-        </SafeAreaView>
+        </View>
     );
 }
 

@@ -29,7 +29,19 @@ yarn start:clear
 
 Scan the QR code with Expo Go (Android) or the Camera app (iOS), or press `a` / `i` / `w` in the terminal.
 
-Leave `EXPO_PUBLIC_API_URL` empty in `.env` to use the built-in **demo data**. To use the backend, set it to its URL (on a phone, use your computer's LAN IP, not `localhost`) and restart Metro.
+Leave `EXPO_PUBLIC_API_URL` empty in `.env` to use the built-in **demo data**.
+
+## Connecting to the backend
+
+Start `kaskad-backend` (see its README), then set `EXPO_PUBLIC_API_URL` in `.env` and restart Metro with `yarn start:clear`:
+
+| Device | `EXPO_PUBLIC_API_URL` |
+|---|---|
+| Web, Electron, iOS simulator | `http://localhost:8000` |
+| Android emulator | `http://10.0.2.2:8000` |
+| Physical phone (same Wi-Fi) | `http://<your computer's LAN IP>:8000` |
+
+Set the backend's `PUBLIC_BASE_URL` to the same address, so download and image links work on the device. For the desktop build, the URL is embedded when running `yarn desktop:start` / `yarn desktop:dist`.
 
 ## Running the app
 

@@ -48,10 +48,14 @@ export function choose(title, message, options) {
     });
 }
 
-/** Toast éphémère : type = "success" | "error" | "info". */
-export function toast(message, { type = "info", duration = 2600 } = {}) {
+/**
+ * Toast éphémère : type = "success" | "error" | "info".
+ * `action` optionnelle : { label, onPress } → bouton affiché dans le toast (reste visible plus longtemps).
+ */
+export function toast(message, { type = "info", duration, action } = {}) {
+    duration ??= action ? 5000 : 2600;
     const store = useOverlayStore.getState();
-    const id = store.pushToast({ message, type });
+    const id = store.pushToast({ message, type, action });
     setTimeout(() => useOverlayStore.getState().removeToast(id), duration);
     return id;
 }

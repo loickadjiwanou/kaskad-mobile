@@ -9,11 +9,13 @@ export const useAuthStore = create(
             accessToken: null,
             refreshToken: null,
             deviceId: null,
-            setSession: ({ access_token, refresh_token, user }) =>
-                set({ user, accessToken: access_token, refreshToken: refresh_token }),
+            // Jeton push enregistré sur le compte (retiré à la déconnexion)
+            pushToken: null,
+            setSession: ({ access_token, refresh_token, user }) => set({ user, accessToken: access_token, refreshToken: refresh_token }),
             setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
             setDeviceId: (deviceId) => set({ deviceId }),
-            logout: () => set({ user: null, accessToken: null, refreshToken: null }),
+            setPushToken: (pushToken) => set({ pushToken }),
+            logout: () => set({ user: null, accessToken: null, refreshToken: null, pushToken: null }),
         }),
         { name: "kaskad.auth", storage: persistStorage },
     ),

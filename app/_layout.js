@@ -13,7 +13,7 @@ import DialogHost from "@/components/DialogHost";
 import ToastHost from "@/components/ToastHost";
 import { useStoresHydrated } from "@/store/hydration";
 import { useUpdatesStore } from "@/store/updates";
-import { getDeviceId, registerPushToken, startLibrarySync } from "@/services/account";
+import { getDeviceId, mergeServerLibrary, registerPushToken, startLibrarySync, syncLibraryNow } from "@/services/account";
 import { addNotificationOpenListener } from "@/services/notifications";
 import { checkForUpdates } from "@/services/updates";
 import { detectPlatform } from "@/lib/platform";
@@ -35,6 +35,10 @@ function useAppLifecycle(ready) {
         const check = () => checkForUpdates().catch(() => {});
         check();
         registerPushToken().catch(() => {});
+        // Compte connecté : récupère les changements faits depuis un autre appareil, puis renvoie la bibliothèque fusionnée
+        mergeServerLibrary()
+            .then(syncLibraryNow)
+            .catch(() => {});
 
         const stopOpen = addNotificationOpenListener((data) => data?.url && router.push(data.url));
         const sub = AppState.addEventListener("change", (state) => state === "active" && isStale() && check());

@@ -26,6 +26,7 @@ import { useAsync } from "@/lib/useAsync";
 import { enableNotifications } from "@/services/preferences";
 import { markAppInstalled, unmarkAppInstalled } from "@/services/updates";
 import { useLibraryStore } from "@/store/library";
+import { useAuthStore } from "@/store/auth";
 import { useSettingsStore } from "@/store/settings";
 import { useUpdatesStore } from "@/store/updates";
 import { font, radius, spacing, useTheme } from "@/theme";
@@ -253,6 +254,13 @@ export default function AppDetail() {
                         name={isFavorite ? "heart" : "heart-outline"}
                         color={isFavorite ? t.danger : t.text}
                         onPress={() => {
+                            // Les favoris sont liés au compte : connexion requise
+                            if (!useAuthStore.getState().user) {
+                                toast(tr("app.favoriteRequiresAccount"), {
+                                    action: { label: tr("profile.signIn"), onPress: () => router.push("/auth") },
+                                });
+                                return;
+                            }
                             useLibraryStore.getState().toggleFavorite(app);
                             toast(tr(isFavorite ? "app.favoriteRemoved" : "app.favoriteAdded"), { type: isFavorite ? "info" : "success" });
                         }}

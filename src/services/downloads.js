@@ -1,7 +1,7 @@
 import { api } from "@/api";
 import { t } from "@/i18n";
 import { normalizeHash, sanitizeFileName } from "@/lib/format";
-import { formatLabel } from "@/lib/platform";
+import { detectPlatform, formatLabel } from "@/lib/platform";
 import { ACTIVE_STATUSES, useDownloadsStore } from "@/store/downloads";
 import { useProgressStore } from "@/store/progress";
 import * as downloader from "./downloader";
@@ -50,7 +50,7 @@ export function startDownload(app, version) {
         platform: version.platform,
         format: version.file_format,
         fileName,
-        url: api.getDownloadUrl(version),
+        url: api.getDownloadUrl(version, detectPlatform().target ?? undefined),
         size: version.file_size ?? null,
         sha256: version.sha256_hash ?? null,
         status: "queued",

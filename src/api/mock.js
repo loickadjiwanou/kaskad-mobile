@@ -64,8 +64,7 @@ function makeVersions(appId, platforms, history, fileKey) {
     return versions;
 }
 
-const shots = (id, n = 4) =>
-    Array.from({ length: n }, (_, i) => `https://picsum.photos/seed/kaskad-${id}-${i}/540/960`);
+const shots = (id, n = 4) => Array.from({ length: n }, (_, i) => `https://picsum.photos/seed/kaskad-${id}-${i}/540/960`);
 
 const rawApps = [
     {
@@ -287,9 +286,13 @@ export const mockApi = {
         };
     },
 
-    async listApps({ q, category_id, platform, sort = "popular", page = 1, limit = 20 } = {}) {
+    async listApps({ q, category_id, platform, sort = "popular", page = 1, limit = 20, ids } = {}) {
         await delay();
-        const all = sortApps(filterApps({ q, category_id, platform }), sort);
+        let all = sortApps(filterApps({ q, category_id, platform }), sort);
+        if (ids) {
+            const wanted = new Set(ids.split(","));
+            all = all.filter((a) => wanted.has(a.id));
+        }
         const start = (page - 1) * limit;
         return { items: all.slice(start, start + limit).map(summary), total: all.length, page, limit };
     },
@@ -339,16 +342,65 @@ export const mockApi = {
         return mockSession({ id: `device-${device_id}`, email: null, anonymous: true });
     },
 
-    async syncLibrary() {
+    async syncLibrary(library) {
         await delay(100);
-        return { ok: true };
+        mockLibrary = { favorites: [], followed_apps: [], installed_apps: [], ...library };
+        return mockLibrary;
+    },
+
+    async getLibrary() {
+        await delay(100);
+        return mockLibrary;
+    },
+
+    async getMyApps() {
+        await delay(100);
+        const followed = Object.fromEntries(mockLibrary.followed_apps.map((f) => [f.app_id, f.notify]));
+        const installed = Object.fromEntries(mockLibrary.installed_apps.map((i) => [i.app_id, i.version_id]));
+        return [...new Set([...Object.keys(installed), ...Object.keys(followed)])]
+            .map((id) => apps.find((a) => a.id === id))
+            .filter(Boolean)
+            .map((app) => {
+                const current = app.versions.find((v) => v.id === installed[app.id]) ?? null;
+                const latest =
+                    app.versions
+                        .filter((v) => !current || v.platform === current.platform)
+                        .sort((a, b) => b.version_code - a.version_code)[0] ?? null;
+                return {
+                    app: summary(app),
+                    followed: app.id in followed,
+                    notify: followed[app.id] ?? false,
+                    installed_version: current,
+                    latest_version: latest,
+                    update_available: !!(current && latest && latest.version_code > current.version_code),
+                };
+            });
     },
 
     async registerPushToken() {
         await delay(100);
-        return { ok: true };
+        return null;
+    },
+
+    async unregisterPushToken() {
+        await delay(50);
+        return null;
+    },
+
+    async logout() {
+        await delay(50);
+        return null;
+    },
+
+    async deleteAccount() {
+        await delay(150);
+        mockLibrary = { favorites: [], followed_apps: [], installed_apps: [] };
+        return null;
     },
 };
+
+// Bibliothèque "côté serveur" de la démo (réinitialisée au redémarrage de l'app)
+let mockLibrary = { favorites: [], followed_apps: [], installed_apps: [] };
 
 function mockSession(user) {
     return { access_token: `mock-${Date.now()}`, refresh_token: `mock-refresh-${Date.now()}`, user };

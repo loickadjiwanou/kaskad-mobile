@@ -7,12 +7,14 @@ import Screen from "@/components/Screen";
 import ScreenHeader from "@/components/ScreenHeader";
 import { EmptyState } from "@/components/States";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/store/auth";
 import { useLibraryStore } from "@/store/library";
 import { useTheme } from "@/theme";
 
 export default function Favorites() {
     const t = useTheme();
     const { t: tr } = useI18n();
+    const user = useAuthStore((s) => s.user);
     const favorites = useLibraryStore((s) => s.favorites);
     const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
     const list = Object.values(favorites).sort((a, b) => a.name.localeCompare(b.name, "fr"));
@@ -24,7 +26,14 @@ export default function Favorites() {
                 title={tr("favorites.title")}
                 subtitle={list.length ? tr("common.apps", { count: list.length }) : undefined}
             />
-            {list.length ? (
+            {!user ? (
+                <EmptyState
+                    icon="account-heart-outline"
+                    title={tr("favorites.signedOutTitle")}
+                    message={tr("favorites.signedOutMessage")}
+                    action={<Button title={tr("profile.signIn")} icon="login" onPress={() => router.push("/auth")} />}
+                />
+            ) : list.length ? (
                 <Grid max={3}>
                     {list.map((app) => (
                         <AppRow

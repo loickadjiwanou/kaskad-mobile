@@ -40,6 +40,19 @@ function ToastItem({ toast, onDismiss }) {
             >
                 <Icon name={type.icon} size={20} color={t[type.color]} />
                 <Text style={[font.small, styles.text, { color: t.text }]}>{toast.message}</Text>
+                {toast.action && (
+                    <Pressable
+                        onPress={() => {
+                            onDismiss();
+                            toast.action.onPress();
+                        }}
+                        accessibilityRole="button"
+                        hitSlop={8}
+                        style={[styles.action, { backgroundColor: t.primary }]}
+                    >
+                        <Text style={[font.small, styles.actionText]}>{toast.action.label}</Text>
+                    </Pressable>
+                )}
             </Pressable>
         </Animated.View>
     );
@@ -78,4 +91,6 @@ const styles = StyleSheet.create({
         elevation: 12,
     },
     text: { fontWeight: "600", flexShrink: 1 },
+    action: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, marginLeft: 4 },
+    actionText: { color: "#fff", fontWeight: "700" },
 });
