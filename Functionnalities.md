@@ -61,6 +61,7 @@ Kaskad lists apps published on the Kaskad store and lets users **download** thei
 - **About**: long description (read more / less).
 - **Versions and files**: grouped by version (expand / collapse), publication date, release notes ("What's new"), every file (platform, format, size) with its **SHA-256 fingerprint** (copy) and download button; security note with a link to the integrity help.
 - **Beta versions** (only for testers invited by the developer and signed in with that email): "BETA" badge, shown before production versions.
+- **Closed testing:** a tester can open an app that isn't published yet (invitation link `kaskad://app/<id>`): "Test version" banner, beta versions only; no reviews, sharing or report link until the public launch. Other users get "app not found".
 - **Ratings and reviews** section (see section 6).
 - **More from the developer**: horizontal list of the developer's other apps, "See all".
 - **Report this app** link at the bottom of the page (see section 6).

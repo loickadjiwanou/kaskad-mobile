@@ -55,6 +55,8 @@ export default {
         noResultsMessage: "Essayez un autre mot-clé ou retirez des filtres.",
     },
     app: {
+        testingTitle: "Version de test",
+        testingMessage: "Cette application n'est pas encore publiée : vous y avez accès en tant que testeur. Seules ses versions bêta sont proposées.",
         share: "Partager",
         linkCopied: "Lien copié",
         addFavorite: "Ajouter aux favoris",

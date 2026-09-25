@@ -290,7 +290,10 @@ export default function AppDetail() {
                 title=""
                 right={
                     <View style={styles.headerActions}>
-                        <IconButton name="share-variant-outline" color={t.text} onPress={() => shareApp(app)} label={tr("app.share")} />
+                        {/* Pas de lien public pendant le test fermé : la fiche n'existe que pour les testeurs */}
+                        {!app.in_testing && (
+                            <IconButton name="share-variant-outline" color={t.text} onPress={() => shareApp(app)} label={tr("app.share")} />
+                        )}
                         <IconButton
                             name={isFavorite ? "heart" : "heart-outline"}
                             color={isFavorite ? t.danger : t.text}
@@ -310,6 +313,16 @@ export default function AppDetail() {
                     </View>
                 }
             />
+
+            {app.in_testing && (
+                <View style={[styles.testingBanner, { backgroundColor: t.tertiary + "1A", borderColor: t.tertiary + "55" }]}>
+                    <Icon name="flask-outline" size={20} color={t.tertiary} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={[font.body, { color: t.text, fontWeight: "700" }]}>{tr("app.testingTitle")}</Text>
+                        <Text style={[font.small, { color: t.textSecondary }]}>{tr("app.testingMessage")}</Text>
+                    </View>
+                </View>
+            )}
 
             <View style={[styles.top, wide && styles.topWide]}>
                 <View style={styles.identity}>
@@ -382,7 +395,8 @@ export default function AppDetail() {
                 )}
             </View>
 
-            <ReviewsSection app={app} onRating={setLiveRating} />
+            {/* Notes et avis : après le lancement public uniquement */}
+            {!app.in_testing && <ReviewsSection app={app} onRating={setLiveRating} />}
 
             <SectionHeader title={tr("app.versions")} />
             <View style={[styles.section, { gap: spacing.md }]}>
@@ -427,14 +441,16 @@ export default function AppDetail() {
             )}
 
             {/* Signaler l'app à la modération de Kaskad (logiciel malveillant, contenu abusif…) */}
-            <Pressable
-                onPress={() => router.push({ pathname: "/report/[id]", params: { id: app.id, name: app.name } })}
-                style={({ pressed }) => [styles.reportRow, { opacity: pressed ? 0.6 : 1 }]}
-                accessibilityRole="button"
-            >
-                <Icon name="flag-outline" size={18} color={t.textSecondary} />
-                <Text style={[font.small, { color: t.textSecondary, fontWeight: "600" }]}>{tr("report.link")}</Text>
-            </Pressable>
+            {!app.in_testing && (
+                <Pressable
+                    onPress={() => router.push({ pathname: "/report/[id]", params: { id: app.id, name: app.name } })}
+                    style={({ pressed }) => [styles.reportRow, { opacity: pressed ? 0.6 : 1 }]}
+                    accessibilityRole="button"
+                >
+                    <Icon name="flag-outline" size={18} color={t.textSecondary} />
+                    <Text style={[font.small, { color: t.textSecondary, fontWeight: "600" }]}>{tr("report.link")}</Text>
+                </Pressable>
+            )}
         </Screen>
     );
 }
@@ -442,6 +458,16 @@ export default function AppDetail() {
 const styles = StyleSheet.create({
     top: { paddingHorizontal: spacing.lg, gap: spacing.lg },
     headerActions: { flexDirection: "row", alignItems: "center" },
+    testingBanner: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: spacing.md,
+        marginHorizontal: spacing.lg,
+        marginBottom: spacing.lg,
+        padding: spacing.md,
+        borderRadius: radius.md,
+        borderWidth: 1,
+    },
     reportRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "center", padding: spacing.lg, marginTop: spacing.lg },
     topWide: { flexDirection: "row", alignItems: "flex-start" },
     identity: { flexDirection: "row", gap: spacing.lg, flex: 1, alignItems: "center" },

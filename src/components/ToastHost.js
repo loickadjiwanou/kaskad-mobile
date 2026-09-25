@@ -29,6 +29,8 @@ function ToastItem({ toast, onDismiss }) {
     return (
         <Animated.View
             style={{
+                // Largeur bornée à l'écran : un message long passe à la ligne au lieu de déborder des deux côtés
+                maxWidth: "100%",
                 opacity: anim,
                 transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }],
             }}
@@ -91,6 +93,6 @@ const styles = StyleSheet.create({
         elevation: 12,
     },
     text: { fontWeight: "600", flexShrink: 1 },
-    action: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, marginLeft: 4 },
+    action: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, marginLeft: 4, flexShrink: 0 },
     actionText: { color: "#fff", fontWeight: "700" },
 });

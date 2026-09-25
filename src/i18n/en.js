@@ -55,6 +55,8 @@ export default {
         noResultsMessage: "Try another keyword or remove some filters.",
     },
     app: {
+        testingTitle: "Test version",
+        testingMessage: "This app isn't published yet: you can access it as a tester. Only its beta versions are offered.",
         share: "Share",
         linkCopied: "Link copied",
         addFavorite: "Add to favorites",

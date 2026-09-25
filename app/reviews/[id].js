@@ -54,7 +54,8 @@ export default function AppReviews() {
                     </Card>
                 </View>
             )}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+            {/* flexGrow: 0 : sur iOS, une liste horizontale occupe sinon toute la hauteur disponible */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.chips}>
                 {SORTS.map((s) => (
                     <Chip key={s} label={tr(`reviews.sort.${s}`)} selected={sort === s} onPress={() => setSort(s)} />
                 ))}
