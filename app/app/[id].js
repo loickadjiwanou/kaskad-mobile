@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Switch, View } from "react-native";
 import { Text } from "@/components/Text";
 import { router, useLocalSearchParams } from "expo-router";
@@ -237,6 +237,11 @@ export default function AppDetail() {
     const [liveRating, setLiveRating] = useState(null);
 
     const best = useMemo(() => (app ? bestVersionForDevice(app.versions) : null), [app]);
+
+    // Vue de la fiche (une fois par ouverture ; le serveur ignore les vues répétées dans les 30 minutes)
+    useEffect(() => {
+        api.trackView(id, { platform: detectPlatform().target ?? undefined, device_id: useAuthStore.getState().deviceId ?? undefined }).catch(() => {});
+    }, [id]);
 
     // Autres apps du même compte développeur
     const developerId = app?.developer?.id;

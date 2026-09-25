@@ -92,9 +92,13 @@ Development mode with hot reload: run `yarn web` in one terminal, then `yarn des
 
 > From the VS Code terminal, run `unset ELECTRON_RUN_AS_NODE` first, otherwise Electron starts as plain Node.
 
+**Electron version:** pinned to 43.x (`~43.7.5`), the most recent line that still runs on **macOS 12 Monterey** (Electron 44 requires macOS 13). Supported desktop systems: macOS 12+, Windows 10+, recent Linux distributions. Keep 43.x updated for security fixes (`yarn upgrade electron` in `desktop/`); move to 44+ only when macOS 12 support can be dropped.
+
 The desktop app registers itself as the handler of `kaskad://` links (at runtime, and in the installers through electron-builder `protocols`): opening `kaskad://app/<id>` from a browser or an email shows that app in Kaskad, whether Kaskad is already running or not.
 
 ## Building
+
+Continuous integration (GitHub Actions): translation check (`yarn check:i18n`) and web export on every push.
 
 ```bash
 yarn desktop:dist          # installers for the current OS

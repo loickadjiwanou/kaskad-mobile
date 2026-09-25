@@ -38,7 +38,12 @@ const httpApi = {
     reportApp: (appId, { reason, details }) => request(`/apps/${encodeURIComponent(appId)}/report`, { method: "POST", body: { reason, details } }),
 
     // installed: [{ app_id, version_id, version_code, platform }] → [{ app_id, latest_version }]
-    checkUpdates: (installed) => request("/updates/check", { method: "POST", body: { installed } }),
+    // `device_id` : identifiant aléatoire de l'appareil (statistiques des versions installées, haché côté serveur)
+    checkUpdates: (installed, device_id) => request("/updates/check", { method: "POST", body: { installed, device_id } }),
+
+    // Vue de la fiche (statistiques du développeur : vues, conversion, pays)
+    trackView: (appId, { platform, device_id } = {}) =>
+        request(`/apps/${encodeURIComponent(appId)}/view`, { method: "POST", body: { platform, device_id } }),
 
     // `name` : nom public du compte (affiché avec ses avis)
     register: ({ email, password, name }) => request("/auth/register", { method: "POST", body: { email, password, name } }),

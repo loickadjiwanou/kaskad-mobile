@@ -1,6 +1,7 @@
 import { api } from "@/api";
 import { toast } from "@/lib/dialog";
 import { t } from "@/i18n";
+import { useAuthStore } from "@/store/auth";
 import { useLibraryStore } from "@/store/library";
 import { useUpdatesStore } from "@/store/updates";
 import { notifyLocal, setBadgeCount } from "./notifications";
@@ -33,7 +34,8 @@ async function doCheck() {
         return {};
     }
 
-    const results = await api.checkUpdates(payload);
+    // Identifiant aléatoire de l'appareil (haché par le serveur) : statistiques des versions réellement installées
+    const results = await api.checkUpdates(payload, useAuthStore.getState().deviceId ?? undefined);
     const available = Object.fromEntries(results.map((r) => [r.app_id, r.latest_version]));
     updates.setAvailable(available);
     await setBadgeCount(results.length);

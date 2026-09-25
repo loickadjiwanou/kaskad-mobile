@@ -70,6 +70,7 @@ Kaskad lists apps published on the Kaskad store and lets users **download** thei
 
 ## 6. Ratings, reviews, reports and sharing
 
+- **Page views:** opening an app page is counted for the developer's statistics (views, conversion, countries); the server ignores repeated views within 30 minutes.
 - **Rating summary:** average (1 decimal, localized), stars, number of ratings and the 5 → 1 star distribution.
 - **Rate this app:** tapping a star opens the review screen with that rating. An **email account** is required (anonymous or signed-out users get a toast with a "Sign in" / "Add an email" action).
 - **Write / edit a review:** 1 to 5 stars with a label (Hated it … Loved it), posted under the **account name** ("Posting as …", with a link to change it — no name field on the review), optional text (2,000 characters, counter), the installed version is attached; one review per account and app, editable at any time; **delete** with confirmation. The rating and review are public.
@@ -100,7 +101,7 @@ Kaskad lists apps published on the Kaskad store and lets users **download** thei
 
 - **Installed** apps: marked manually after installing (Kaskad never installs anything); shows installed version and whether an update is available.
 - **Followed** apps (not installed): follow to be notified of new versions.
-- Update check against the store ("Check now", last check time), automatic at start, when the app comes back to the foreground, and periodically on desktop.
+- Update check against the store ("Check now", last check time), automatic at start, when the app comes back to the foreground, and periodically on desktop. The check sends a random device identifier (hashed by the server) so developers see which versions are actually installed; no personal data.
 - **Notifications:** per-app switch; push notifications (FCM on Android, APNs on iOS) when a new version is published for a followed app; local notification for updates found. Notifications are **off by default** and enabled from the profile.
 - Beta versions never trigger update alerts (except for testers checking the app page).
 
@@ -148,7 +149,8 @@ Built-in, per platform, with the section for the current device highlighted:
 - **Registered as the `kaskad://` link handler** (runtime registration + installer `protocols`): `kaskad://app/<id>` (also `developer/<id>`, `category/<id>`) opens the matching page, at launch or in the running window (macOS `open-url`, Windows / Linux command line and second instance), without reloading the app.
 - Native downloads (pause, resume, cancel) through the system, "show in folder", file existence checks.
 - Periodic update checks (no native push on desktop).
-- Installers built with electron-builder for Windows, macOS and Linux.
+- Installers built with electron-builder for Windows, macOS and Linux (the macOS app declares the `kaskad://` scheme).
+- Electron 43 (security-patched line compatible with macOS 12+).
 
 ---
 

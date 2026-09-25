@@ -426,6 +426,10 @@ export const mockApi = {
         return null;
     },
 
+    async trackView() {
+        return null;
+    },
+
     async reportReview() {
         await delay(150);
         return null;
