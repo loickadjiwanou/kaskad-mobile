@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Switch, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Switch, View } from "react-native";
 import { Text } from "@/components/Text";
 import { router, useLocalSearchParams } from "expo-router";
 import { api } from "@/api";
 import AppIcon from "@/components/AppIcon";
+import AppTile from "@/components/AppTile";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import Chip from "@/components/Chip";
@@ -13,6 +14,8 @@ import HashBox from "@/components/HashBox";
 import Icon from "@/components/Icon";
 import IconButton from "@/components/IconButton";
 import { FormatBadge, PlatformIcons } from "@/components/PlatformBadges";
+import { formatRating } from "@/components/RatingSummary";
+import ReviewsSection from "@/components/ReviewsSection";
 import Screen from "@/components/Screen";
 import ScreenHeader from "@/components/ScreenHeader";
 import SectionHeader from "@/components/SectionHeader";
@@ -22,6 +25,7 @@ import { confirm, toast } from "@/lib/dialog";
 import { formatBytes, formatCount, formatDate } from "@/lib/format";
 import { useDownloadForVersion, useIsWide } from "@/lib/hooks";
 import { bestVersionForDevice, detectPlatform, formatLabel, platformLabel, sortVersionsForDevice } from "@/lib/platform";
+import { shareApp } from "@/lib/share";
 import { useAsync } from "@/lib/useAsync";
 import { enableNotifications } from "@/services/preferences";
 import { markAppInstalled, unmarkAppInstalled } from "@/services/updates";
@@ -61,9 +65,12 @@ function PrimaryDownload({ app, version }) {
         <Card style={styles.primaryCard}>
             <View style={styles.primaryHead}>
                 <FormatBadge platform={version.platform} format={version.file_format} highlight />
-                <Text style={[font.small, { color: t.textSecondary }]}>
-                    v{version.version_name} · {formatBytes(version.file_size)}
-                </Text>
+                <View style={styles.row}>
+                    {version.channel === "beta" && <BetaBadge />}
+                    <Text style={[font.small, { color: t.textSecondary }]}>
+                        v{version.version_name} · {formatBytes(version.file_size)}
+                    </Text>
+                </View>
             </View>
             <DownloadAction app={app} version={version} primary />
             {item?.status === "completed" && !isInstalled && (
@@ -161,6 +168,18 @@ function LibraryPanel({ app, latestForDevice }) {
     );
 }
 
+/** Version du canal bêta (visible uniquement par les testeurs de l'app). */
+function BetaBadge() {
+    const t = useTheme();
+    const { t: tr } = useI18n();
+    return (
+        <View style={[styles.betaBadge, { backgroundColor: t.tertiary + "22" }]}>
+            <Icon name="flask-outline" size={12} color={t.tertiary} />
+            <Text style={{ color: t.tertiary, fontSize: 11, fontWeight: "800", letterSpacing: 0.5 }}>{tr("app.beta")}</Text>
+        </View>
+    );
+}
+
 function VersionGroup({ app, group, expanded, onToggle }) {
     const t = useTheme();
     const { t: tr } = useI18n();
@@ -169,7 +188,10 @@ function VersionGroup({ app, group, expanded, onToggle }) {
         <Card style={styles.versionCard} padded={false}>
             <Pressable onPress={onToggle} style={styles.versionHead} accessibilityRole="button" accessibilityState={{ expanded }}>
                 <View style={{ flex: 1 }}>
-                    <Text style={[font.h3, { color: t.text }]}>{tr("app.version", { version: group.version_name })}</Text>
+                    <View style={[styles.row, { alignItems: "center" }]}>
+                        <Text style={[font.h3, { color: t.text }]}>{tr("app.version", { version: group.version_name })}</Text>
+                        {group.channel === "beta" && <BetaBadge />}
+                    </View>
                     <Text style={[font.small, { color: t.textSecondary }]}>
                         {tr("app.publishedOn", { date: formatDate(group.published_at) })} · {tr("app.files", { count: group.files.length })}
                     </Text>
@@ -204,15 +226,25 @@ function VersionGroup({ app, group, expanded, onToggle }) {
 
 export default function AppDetail() {
     const t = useTheme();
-    const { t: tr } = useI18n();
+    const { t: tr, lang } = useI18n();
     const wide = useIsWide();
     const { id } = useLocalSearchParams();
-    const { data: app, error, loading, reload, refresh, refreshing } = useAsync(() => api.getApp(id), [id]);
+    const { data: app, error, loading, reload, refresh, refreshing } = useAsync(() => api.getApp(id), [id, lang]);
     const isFavorite = useLibraryStore((s) => !!s.favorites[id]);
     const [showMore, setShowMore] = useState(false);
     const [openGroups, setOpenGroups] = useState({});
+    // Note à jour fournie par la section des avis (sinon celle de la fiche)
+    const [liveRating, setLiveRating] = useState(null);
 
     const best = useMemo(() => (app ? bestVersionForDevice(app.versions) : null), [app]);
+
+    // Autres apps du même compte développeur
+    const developerId = app?.developer?.id;
+    const { data: developerApps } = useAsync(
+        () => (developerId ? api.listApps({ developer_id: developerId, sort: "popular", limit: 13 }) : Promise.resolve(null)),
+        [developerId],
+    );
+    const moreFromDeveloper = (developerApps?.items ?? []).filter((a) => a.id !== id).slice(0, 12);
 
     const groups = useMemo(() => {
         if (!app) return [];
@@ -224,6 +256,7 @@ export default function AppDetail() {
                     version_name: v.version_name,
                     published_at: v.published_at,
                     changelog: v.changelog,
+                    channel: v.channel,
                     files: [],
                 });
             map.get(v.version_code).files.push(v);
@@ -241,6 +274,7 @@ export default function AppDetail() {
     }
 
     const longText = app.long_description ?? "";
+    const rating = liveRating ?? { average: app.rating_average, count: app.rating_count };
     const truncated = !showMore && longText.length > 260;
 
     return (
@@ -250,22 +284,25 @@ export default function AppDetail() {
                 large={false}
                 title=""
                 right={
-                    <IconButton
-                        name={isFavorite ? "heart" : "heart-outline"}
-                        color={isFavorite ? t.danger : t.text}
-                        onPress={() => {
-                            // Les favoris sont liés au compte : connexion requise
-                            if (!useAuthStore.getState().user) {
-                                toast(tr("app.favoriteRequiresAccount"), {
-                                    action: { label: tr("profile.signIn"), onPress: () => router.push("/auth") },
-                                });
-                                return;
-                            }
-                            useLibraryStore.getState().toggleFavorite(app);
-                            toast(tr(isFavorite ? "app.favoriteRemoved" : "app.favoriteAdded"), { type: isFavorite ? "info" : "success" });
-                        }}
-                        label={tr(isFavorite ? "app.removeFavorite" : "app.addFavorite")}
-                    />
+                    <View style={styles.headerActions}>
+                        <IconButton name="share-variant-outline" color={t.text} onPress={() => shareApp(app)} label={tr("app.share")} />
+                        <IconButton
+                            name={isFavorite ? "heart" : "heart-outline"}
+                            color={isFavorite ? t.danger : t.text}
+                            onPress={() => {
+                                // Les favoris sont liés au compte : connexion requise
+                                if (!useAuthStore.getState().user) {
+                                    toast(tr("app.favoriteRequiresAccount"), {
+                                        action: { label: tr("profile.signIn"), onPress: () => router.push("/auth") },
+                                    });
+                                    return;
+                                }
+                                useLibraryStore.getState().toggleFavorite(app);
+                                toast(tr(isFavorite ? "app.favoriteRemoved" : "app.favoriteAdded"), { type: isFavorite ? "info" : "success" });
+                            }}
+                            label={tr(isFavorite ? "app.removeFavorite" : "app.addFavorite")}
+                        />
+                    </View>
                 }
             />
 
@@ -274,8 +311,28 @@ export default function AppDetail() {
                     <AppIcon app={app} size={wide ? 112 : 88} />
                     <View style={{ flex: 1, gap: 4 }}>
                         <Text style={[font.h1, { color: t.text }]}>{app.name}</Text>
+                        {!!app.developer?.name && (
+                            <Pressable
+                                onPress={() => router.push(`/developer/${app.developer.id}`)}
+                                hitSlop={6}
+                                accessibilityRole="link"
+                                accessibilityLabel={tr("app.developerA11y", { name: app.developer.name })}
+                                style={{ alignSelf: "flex-start" }}
+                            >
+                                <Text style={{ color: t.primary, fontWeight: "700", fontSize: 15 }}>{app.developer.name}</Text>
+                            </Pressable>
+                        )}
                         <Text style={[font.body, { color: t.textSecondary }]}>{app.short_description}</Text>
                         <View style={styles.metaRow}>
+                            {rating.count > 0 && (
+                                <Text
+                                    style={[font.small, { color: t.text, fontWeight: "700" }]}
+                                    accessibilityLabel={tr("reviews.a11y", { value: formatRating(rating.average, lang), count: rating.count })}
+                                >
+                                    {formatRating(rating.average, lang)} <Text style={{ color: "#F5B301" }}>★</Text>
+                                    <Text style={[font.small, { color: t.textMuted, fontWeight: "400" }]}> ({formatCount(rating.count)}) ·</Text>
+                                </Text>
+                            )}
                             <PlatformIcons platforms={app.platforms} size={16} />
                             <Text style={[font.small, { color: t.textMuted }]}>
                                 · {tr("app.downloadsCount", { count: formatCount(app.downloads_count) })} ·{" "}
@@ -320,6 +377,8 @@ export default function AppDetail() {
                 )}
             </View>
 
+            <ReviewsSection app={app} onRating={setLiveRating} />
+
             <SectionHeader title={tr("app.versions")} />
             <View style={[styles.section, { gap: spacing.md }]}>
                 <View style={[styles.noteRow, styles.securityNote, { backgroundColor: t.surfaceAlt }]}>
@@ -344,12 +403,41 @@ export default function AppDetail() {
                     />
                 ))}
             </View>
+
+            {moreFromDeveloper.length > 0 && (
+                <>
+                    <SectionHeader
+                        title={tr("app.moreFromDeveloper", { name: app.developer.name })}
+                        onAction={() => router.push(`/developer/${app.developer.id}`)}
+                    />
+                    <FlatList
+                        horizontal
+                        data={moreFromDeveloper}
+                        keyExtractor={(a) => a.id}
+                        renderItem={({ item }) => <AppTile app={item} />}
+                        contentContainerStyle={{ paddingHorizontal: spacing.lg }}
+                        showsHorizontalScrollIndicator={false}
+                    />
+                </>
+            )}
+
+            {/* Signaler l'app à la modération de Kaskad (logiciel malveillant, contenu abusif…) */}
+            <Pressable
+                onPress={() => router.push({ pathname: "/report/[id]", params: { id: app.id, name: app.name } })}
+                style={({ pressed }) => [styles.reportRow, { opacity: pressed ? 0.6 : 1 }]}
+                accessibilityRole="button"
+            >
+                <Icon name="flag-outline" size={18} color={t.textSecondary} />
+                <Text style={[font.small, { color: t.textSecondary, fontWeight: "600" }]}>{tr("report.link")}</Text>
+            </Pressable>
         </Screen>
     );
 }
 
 const styles = StyleSheet.create({
     top: { paddingHorizontal: spacing.lg, gap: spacing.lg },
+    headerActions: { flexDirection: "row", alignItems: "center" },
+    reportRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "center", padding: spacing.lg, marginTop: spacing.lg },
     topWide: { flexDirection: "row", alignItems: "flex-start" },
     identity: { flexDirection: "row", gap: spacing.lg, flex: 1, alignItems: "center" },
     primaryCol: { gap: spacing.md },
@@ -358,6 +446,7 @@ const styles = StyleSheet.create({
     primaryHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm, flexWrap: "wrap" },
     installHint: { gap: spacing.sm, borderTopWidth: 1, paddingTop: spacing.md },
     row: { flexDirection: "row", gap: spacing.sm, flexWrap: "wrap" },
+    betaBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.pill },
     noteRow: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" },
     securityNote: { padding: spacing.md, borderRadius: radius.md },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.lg },

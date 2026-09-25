@@ -1,5 +1,7 @@
 // Données de démonstration utilisées tant que EXPO_PUBLIC_API_URL n'est pas défini.
 // Les formes renvoyées sont identiques à celles attendues de l'API FastAPI.
+import { getLanguage, t } from "@/i18n";
+import { useAuthStore } from "@/store/auth";
 
 const FILES = {
     small: {
@@ -36,6 +38,13 @@ const categories = [
 ];
 
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+
+// Comptes développeurs qui publient les apps de démonstration
+const developers = {
+    kaskad: { id: "dev-kaskad", name: "Kaskad" },
+    nova: { id: "dev-studio-nova", name: "Studio Nova" },
+};
+const NOVA_APPS = new Set(["pixel-drift", "nebula-run", "lingo-cards"]);
 
 function makeVersions(appId, platforms, history, fileKey) {
     const file = FILES[fileKey];
@@ -230,6 +239,7 @@ const apps = rawApps.map((a, i) => {
         status: "published",
         downloads_count: a.downloads_count,
         featured: !!a.featured,
+        developer: NOVA_APPS.has(a.id) ? developers.nova : developers.kaskad,
         latest_version_name: latest.name,
         created_at: daysAgo(a.history.at(-1).days + 1 + i),
         updated_at: daysAgo(latest.days),
@@ -238,18 +248,71 @@ const apps = rawApps.map((a, i) => {
 });
 
 // ---------------------------------------------------------------------------
+// Notes et avis de démonstration (déterministes par app)
+
+const REVIEW_POOL = [
+    { rating: 5, author: "Camille", lang: "fr", body: "Excellente app, rapide et sans pub. Je recommande !" },
+    { rating: 4, author: "Alex", lang: "en", body: "Works great. Would love a widget in the next version." },
+    { rating: 5, author: "Moussa", lang: "fr", body: "Exactement ce que je cherchais, merci au développeur." },
+    { rating: 3, author: "Jordan", lang: "en", body: "Good idea but a bit slow to start on my laptop." },
+    { rating: 4, author: "Inès", lang: "fr", body: "Très pratique au quotidien, l'interface est claire." },
+    { rating: 2, author: "Sam", lang: "en", body: "Crashed twice after the last update." },
+    { rating: 5, author: "Léa", lang: "fr", body: "" },
+    { rating: 1, author: "Chris", lang: "en", body: "Doesn't open on my device anymore." },
+];
+
+const reviewsByApp = Object.fromEntries(
+    rawApps.map((a, i) => {
+        const n = 3 + (i % 5);
+        const items = Array.from({ length: n }, (_, k) => {
+            const r = REVIEW_POOL[(i * 3 + k) % REVIEW_POOL.length];
+            return {
+                id: `rev-${a.id}-${k}`,
+                app_id: a.id,
+                rating: r.rating,
+                body: r.body,
+                author_name: r.author,
+                version_name: a.history[0].name,
+                language: r.lang,
+                created_at: daysAgo(k * 4 + 1),
+                updated_at: daysAgo(k * 4 + 1),
+                reply:
+                    k === 1
+                        ? { body: r.lang === "fr" ? "Merci pour votre retour !" : "Thanks for your feedback!", author_name: NOVA_APPS.has(a.id) ? "Studio Nova" : "Kaskad", replied_at: daysAgo(k * 4) }
+                        : null,
+                is_mine: false,
+            };
+        });
+        return [a.id, items];
+    }),
+);
+
+function ratingOf(appId) {
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    (reviewsByApp[appId] ?? []).forEach((r) => distribution[r.rating]++);
+    const count = Object.values(distribution).reduce((a, b) => a + b, 0);
+    const average = count ? Math.round((Object.entries(distribution).reduce((s, [k, v]) => s + k * v, 0) / count) * 100) / 100 : null;
+    return { average, count, distribution };
+}
+
+const currentUserId = () => useAuthStore.getState().user?.id ?? null;
+const mine = (r) => ({ ...r, is_mine: !!r.user_id && r.user_id === currentUserId() });
+
+// ---------------------------------------------------------------------------
 
 const delay = (ms = 250) => new Promise((r) => setTimeout(r, ms + Math.random() * 200));
 
 function summary(app) {
     const { versions, long_description, screenshots, ...rest } = app;
-    return rest;
+    const { average, count } = ratingOf(app.id);
+    return { ...rest, rating_average: average, rating_count: count };
 }
 
-function filterApps({ q, category_id, platform } = {}) {
+function filterApps({ q, category_id, platform, developer_id } = {}) {
     const query = (q || "").trim().toLowerCase();
     return apps.filter((a) => {
         if (category_id && !a.category_ids.includes(category_id)) return false;
+        if (developer_id && a.developer.id !== developer_id) return false;
         if (platform && !a.platforms.includes(platform)) return false;
         if (query) {
             const hay = `${a.name} ${a.short_description} ${a.long_description}`.toLowerCase();
@@ -286,9 +349,9 @@ export const mockApi = {
         };
     },
 
-    async listApps({ q, category_id, platform, sort = "popular", page = 1, limit = 20, ids } = {}) {
+    async listApps({ q, category_id, platform, sort = "popular", page = 1, limit = 20, ids, developer_id } = {}) {
         await delay();
-        let all = sortApps(filterApps({ q, category_id, platform }), sort);
+        let all = sortApps(filterApps({ q, category_id, platform, developer_id }), sort);
         if (ids) {
             const wanted = new Set(ids.split(","));
             all = all.filter((a) => wanted.has(a.id));
@@ -305,7 +368,72 @@ export const mockApi = {
             err.status = 404;
             throw err;
         }
-        return { ...app, categories: categories.filter((c) => app.category_ids.includes(c.id)) };
+        const { average, count, distribution } = ratingOf(app.id);
+        return {
+            ...app,
+            categories: categories.filter((c) => app.category_ids.includes(c.id)),
+            rating_average: average,
+            rating_count: count,
+            rating_distribution: distribution,
+            // Démo : pas de page web publique, le lien ouvre directement l'app Kaskad
+            share_url: `kaskad://app/${app.id}`,
+        };
+    },
+
+    async getDeveloper(id) {
+        await delay();
+        const dev = Object.values(developers).find((d) => d.id === id);
+        if (!dev) {
+            const err = new Error("Développeur introuvable");
+            err.status = 404;
+            throw err;
+        }
+        return { ...dev, apps_count: apps.filter((a) => a.developer.id === id).length };
+    },
+
+    async getReviews(appId, { sort = "recent", rating, page = 1, limit = 20 } = {}) {
+        await delay();
+        let items = [...(reviewsByApp[appId] ?? [])];
+        if (rating) items = items.filter((r) => r.rating === Number(rating));
+        items.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+        if (sort === "rating_desc") items.sort((a, b) => b.rating - a.rating);
+        if (sort === "rating_asc") items.sort((a, b) => a.rating - b.rating);
+        const start = (page - 1) * limit;
+        return { items: items.slice(start, start + limit).map(mine), total: items.length, page, limit, rating: ratingOf(appId) };
+    },
+
+    async getMyReview(appId) {
+        await delay(100);
+        const r = (reviewsByApp[appId] ?? []).find((x) => x.user_id && x.user_id === currentUserId());
+        return r ? mine(r) : null;
+    },
+
+    async saveMyReview(appId, { rating, body = "", version_name = null }) {
+        await delay();
+        const user = useAuthStore.getState().user;
+        if (!user || user.anonymous) throw Object.assign(new Error(t("reviews.emailRequired")), { status: 403 });
+        const list = (reviewsByApp[appId] ??= []);
+        const existing = list.find((x) => x.user_id === user.id);
+        const fields = { rating, body: body.trim(), author_name: user.name || user.email.split("@")[0], version_name, updated_at: new Date().toISOString() };
+        if (existing) Object.assign(existing, fields);
+        else list.unshift({ id: `rev-${appId}-${Date.now()}`, app_id: appId, user_id: user.id, language: getLanguage(), created_at: fields.updated_at, reply: null, ...fields });
+        return mine(list.find((x) => x.user_id === user.id));
+    },
+
+    async deleteMyReview(appId) {
+        await delay(150);
+        reviewsByApp[appId] = (reviewsByApp[appId] ?? []).filter((x) => !x.user_id || x.user_id !== currentUserId());
+        return null;
+    },
+
+    async reportReview() {
+        await delay(150);
+        return null;
+    },
+
+    async reportApp() {
+        await delay(200);
+        return { detail: "ok" };
     },
 
     getDownloadUrl(version) {
@@ -327,9 +455,16 @@ export const mockApi = {
             .filter(Boolean);
     },
 
-    async register({ email }) {
+    async register({ email, name }) {
         await delay();
-        return mockSession({ id: `user-${email}`, email, anonymous: false });
+        return mockSession({ id: `user-${email}`, email, name: name?.trim() || null, anonymous: false });
+    },
+
+    async updateMe({ name }) {
+        await delay(150);
+        const user = { ...useAuthStore.getState().user, name: name.trim() };
+        Object.values(reviewsByApp).forEach((list) => list.forEach((r) => r.user_id === user.id && (r.author_name = user.name)));
+        return user;
     },
 
     async login({ email }) {

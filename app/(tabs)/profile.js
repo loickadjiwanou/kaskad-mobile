@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import Chip from "@/components/Chip";
 import Icon from "@/components/Icon";
+import IconButton from "@/components/IconButton";
 import ListItem from "@/components/ListItem";
 import Screen from "@/components/Screen";
 import ScreenHeader from "@/components/ScreenHeader";
@@ -17,7 +18,7 @@ import { confirm, toast } from "@/lib/dialog";
 import { detectPlatform, formatLabel, platformLabel } from "@/lib/platform";
 import { deleteAccount, logout, unregisterPushToken } from "@/services/account";
 import { enableNotifications } from "@/services/preferences";
-import { useAuthStore } from "@/store/auth";
+import { displayName, useAuthStore } from "@/store/auth";
 import { useLibraryStore } from "@/store/library";
 import { useSettingsStore } from "@/store/settings";
 import { font, radius, spacing, useTheme } from "@/theme";
@@ -55,13 +56,22 @@ function AccountCard() {
             </View>
             <View style={{ flex: 1 }}>
                 <Text style={[font.h3, { color: t.text }]} numberOfLines={1}>
-                    {user.anonymous ? tr("profile.anonymous") : user.email}
+                    {user.anonymous ? tr("profile.anonymous") : displayName(user)}
                 </Text>
+                {!user.anonymous && (
+                    <Text style={[font.small, { color: t.textSecondary }]} numberOfLines={1}>
+                        {user.email}
+                    </Text>
+                )}
                 <Text style={[font.small, { color: t.textSecondary }]}>
                     {tr(user.anonymous ? "profile.linkedDevice" : "profile.syncOn")}
                 </Text>
             </View>
-            {user.anonymous && <Button title={tr("profile.addEmail")} size="sm" variant="secondary" onPress={() => router.push("/auth")} />}
+            {user.anonymous ? (
+                <Button title={tr("profile.addEmail")} size="sm" variant="secondary" onPress={() => router.push("/auth")} />
+            ) : (
+                <IconButton name="pencil-outline" color={t.primary} onPress={() => router.push("/account-name")} label={tr("profile.nameTitle")} />
+            )}
         </Card>
     );
 }

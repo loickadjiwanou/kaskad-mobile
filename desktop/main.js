@@ -18,6 +18,56 @@ protocol.registerSchemesAsPrivileged([
 let win = null;
 
 // ---------------------------------------------------------------------------
+// Liens profonds : kaskad://app/<id> (page web publique d'une app, e-mails) ouvre la fiche dans Kaskad.
+// L'origine interne de l'app est aussi kaskad://app/ : seuls les liens reçus du système passent ici.
+
+const DEEP_LINK_HOSTS = new Set(["app", "developer", "category"]);
+let pendingRoute = null; // lien reçu avant que la fenêtre soit prête
+
+/** kaskad://app/<id> → /app/<id> (route expo-router) ; null si le lien n'est pas reconnu. */
+function routeFromDeepLink(url) {
+    try {
+        const u = new URL(url);
+        if (u.protocol !== "kaskad:" || !DEEP_LINK_HOSTS.has(u.host)) return null;
+        const id = u.pathname.split("/").filter(Boolean)[0];
+        return id && /^[\w-]{1,64}$/.test(id) ? `/${u.host}/${id}` : null;
+    } catch {
+        return null;
+    }
+}
+
+function openDeepLink(url) {
+    const route = routeFromDeepLink(url);
+    if (!route) return;
+    if (!win) {
+        pendingRoute = route;
+        return;
+    }
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+    // Fenêtre chargée : navigation dans l'app sans rechargement ; sinon chargement direct de la route
+    if (win.webContents.isLoading()) win.webContents.once("did-finish-load", () => send("kaskad:open-route", route));
+    else send("kaskad:open-route", route);
+}
+
+const deepLinkFromArgv = (argv) => argv.find((a) => typeof a === "string" && a.startsWith("kaskad://"));
+
+// Kaskad devient l'application qui ouvre les liens kaskad:// (Windows / Linux : registre et .desktop ;
+// macOS : Info.plist généré par electron-builder). En développement, electron doit recevoir le chemin du script.
+if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient("kaskad", process.execPath, [path.resolve(process.argv[1])]);
+} else {
+    app.setAsDefaultProtocolClient("kaskad");
+}
+
+// macOS : le lien arrive par l'événement open-url (y compris au lancement, avant ready)
+app.on("open-url", (event, url) => {
+    event.preventDefault();
+    openDeepLink(url);
+});
+
+// ---------------------------------------------------------------------------
 // Fenêtre
 
 function serveWebBuild() {
@@ -62,7 +112,11 @@ function createWindow() {
         }
     });
 
-    win.loadURL(DEV_URL || APP_URL);
+    // Lancement par un lien profond (Windows / Linux : argument de la ligne de commande) : ouvre directement la fiche
+    const initial = pendingRoute ?? routeFromDeepLink(deepLinkFromArgv(process.argv) ?? "");
+    pendingRoute = null;
+    const base = DEV_URL ? DEV_URL.replace(/\/$/, "") + "/" : APP_URL;
+    win.loadURL(initial ? base + initial.slice(1) : base);
     win.on("closed", () => (win = null));
 }
 
@@ -237,7 +291,10 @@ ipcMain.handle("kaskad:set-badge", (_e, count) => {
 if (!app.requestSingleInstanceLock()) {
     app.quit();
 } else {
-    app.on("second-instance", () => {
+    // Windows / Linux : un lien kaskad:// ouvert alors que Kaskad tourne relance l'exécutable avec le lien en argument
+    app.on("second-instance", (_event, argv) => {
+        const link = deepLinkFromArgv(argv);
+        if (link) return openDeepLink(link);
         if (!win) return;
         if (win.isMinimized()) win.restore();
         win.focus();

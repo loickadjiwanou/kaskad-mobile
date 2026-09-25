@@ -28,8 +28,13 @@ export async function login(email, password) {
     await afterLogin(await api.login({ email: email.trim().toLowerCase(), password }));
 }
 
-export async function register(email, password) {
-    await afterLogin(await api.register({ email: email.trim().toLowerCase(), password }));
+export async function register(email, password, name) {
+    await afterLogin(await api.register({ email: email.trim().toLowerCase(), password, name: name.trim() }));
+}
+
+/** Nom public du compte (affiché avec ses avis). */
+export async function updateName(name) {
+    useAuthStore.getState().setUser(await api.updateMe({ name: name.trim() }));
 }
 
 export async function loginAnonymous() {
@@ -118,6 +123,15 @@ export async function mergeServerLibrary() {
         }
     }
     local.replaceAll({ favorites, followed, installed });
+}
+
+/** Remet à jour les fiches affichées dans Favoris et Mes apps (textes dans la langue actuelle de l'app). */
+export async function refreshLibrarySnapshots() {
+    const { favorites, installed, followed } = useLibraryStore.getState();
+    const ids = [...new Set([...Object.keys(favorites), ...Object.keys(installed), ...Object.keys(followed)])];
+    if (!ids.length) return;
+    const { items } = await api.listApps({ ids: ids.slice(0, 100).join(","), limit: 100 });
+    useLibraryStore.getState().refreshSnapshots(items);
 }
 
 export function syncLibraryNow() {

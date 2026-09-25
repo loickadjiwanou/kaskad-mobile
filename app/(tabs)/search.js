@@ -37,7 +37,7 @@ function useDebounced(value, ms = 300) {
 
 export default function Search() {
     const t = useTheme();
-    const { t: tr } = useI18n();
+    const { t: tr, lang } = useI18n();
     const tabBarInset = useTabBarInset();
     const cols = useColumns({ max: 3 });
     const onScroll = useTabBarScroll();
@@ -58,7 +58,7 @@ export default function Search() {
     const filters = { q, category_id: categoryId ?? undefined, platform: platform ?? undefined, sort };
     const { data, error, loading, reload } = useAsync(
         () => api.listApps({ ...filters, page: 1, limit: PAGE_SIZE }),
-        [q, categoryId, platform, sort],
+        [q, categoryId, platform, sort, lang],
     );
 
     // Pages suivantes (réinitialisées à chaque nouvelle recherche)

@@ -13,7 +13,8 @@ import DialogHost from "@/components/DialogHost";
 import ToastHost from "@/components/ToastHost";
 import { useStoresHydrated } from "@/store/hydration";
 import { useUpdatesStore } from "@/store/updates";
-import { getDeviceId, mergeServerLibrary, registerPushToken, startLibrarySync, syncLibraryNow } from "@/services/account";
+import { useSettingsStore } from "@/store/settings";
+import { getDeviceId, mergeServerLibrary, refreshLibrarySnapshots, registerPushToken, startLibrarySync, syncLibraryNow } from "@/services/account";
 import { addNotificationOpenListener } from "@/services/notifications";
 import { checkForUpdates } from "@/services/updates";
 import { detectPlatform } from "@/lib/platform";
@@ -38,16 +39,25 @@ function useAppLifecycle(ready) {
         // Compte connecté : récupère les changements faits depuis un autre appareil, puis renvoie la bibliothèque fusionnée
         mergeServerLibrary()
             .then(syncLibraryNow)
-            .catch(() => {});
+            .catch(() => {})
+            .then(() => refreshLibrarySnapshots().catch(() => {}));
+        // Changement de langue : Favoris et Mes apps affichent les descriptions dans la nouvelle langue
+        const stopLang = useSettingsStore.subscribe((s, prev) => {
+            if (s.language !== prev.language) refreshLibrarySnapshots().catch(() => {});
+        });
 
         const stopOpen = addNotificationOpenListener((data) => data?.url && router.push(data.url));
+        // Desktop : liens kaskad://app/<id> ouverts depuis le navigateur (page publique) ou un e-mail
+        const stopDeepLinks = typeof window !== "undefined" && window.kaskad?.onOpenRoute ? window.kaskad.onOpenRoute((route) => router.push(route)) : () => {};
         const sub = AppState.addEventListener("change", (state) => state === "active" && isStale() && check());
         // Desktop : pas de push natif, on vérifie périodiquement les nouvelles versions
         const interval = detectPlatform().isDesktop ? setInterval(check, CHECK_INTERVAL_MS) : null;
 
         return () => {
             stopSync();
+            stopLang();
             stopOpen();
+            stopDeepLinks();
             sub.remove();
             if (interval) clearInterval(interval);
         };
@@ -142,9 +152,14 @@ export default function RootLayout() {
                             <AppStack.Screen name="(tabs)" />
                             <AppStack.Screen name="app/[id]" />
                             <AppStack.Screen name="category/[id]" />
+                            <AppStack.Screen name="developer/[id]" />
                             <AppStack.Screen name="favorites" />
                             <AppStack.Screen name="faq" />
+                            <AppStack.Screen name="reviews/[id]" />
+                            <AppStack.Screen name="review/[id]" options={modalOptions} />
+                            <AppStack.Screen name="report/[id]" options={modalOptions} />
                             <AppStack.Screen name="auth" options={modalOptions} />
+                            <AppStack.Screen name="account-name" options={modalOptions} />
                             <AppStack.Screen name="gallery" options={galleryOptions} />
                         </AppStack>
                     ) : (

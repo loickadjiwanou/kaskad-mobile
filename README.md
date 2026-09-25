@@ -10,10 +10,14 @@ The app **never installs anything automatically**: users download the file, can 
 
 - Catalog with featured / new / popular apps, categories and search
 - Compatible formats shown first for the current device
-- App pages with screenshots, versions, changelogs and SHA-256 fingerprints
+- App pages in the app's language (French or English, when the developer translated them), beta versions for invited testers,
+- App pages with the developer's name, screenshots, versions, changelogs and SHA-256 fingerprints; developer pages listing all their apps
 - Downloads with progress, pause / resume, history and integrity check
 - "My apps": track installed apps and get notified about new versions
-- Optional account (email or anonymous), favorites
+- Ratings and reviews: rate apps from 1 to 5 stars and write a review (email account), read the developer's replies, report abusive reviews
+- Report an app to the Kaskad moderation team (malware, abusive content…), no account needed
+- Share an app: its public web page opens the app in Kaskad when Kaskad is installed (`kaskad://app/<id>` links)
+- Optional account (email with a public name, or anonymous), favorites
 - Built-in installation help (Android, Windows, macOS, Linux)
 - Light / Midnight / Black themes, French and English
 
@@ -87,6 +91,8 @@ yarn desktop:start     # build the web version and launch Electron
 Development mode with hot reload: run `yarn web` in one terminal, then `yarn desktop:dev` in another.
 
 > From the VS Code terminal, run `unset ELECTRON_RUN_AS_NODE` first, otherwise Electron starts as plain Node.
+
+The desktop app registers itself as the handler of `kaskad://` links (at runtime, and in the installers through electron-builder `protocols`): opening `kaskad://app/<id>` from a browser or an email shows that app in Kaskad, whether Kaskad is already running or not.
 
 ## Building
 

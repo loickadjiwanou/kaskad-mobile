@@ -67,6 +67,22 @@ export const useLibraryStore = create(
                 ),
 
             replaceAll: ({ favorites, installed, followed }) => set({ favorites, installed, followed }),
+            // Instantanés remis à jour (langue de l'app, nom ou icône modifiés) ; les autres données restent inchangées
+            refreshSnapshots: (apps) =>
+                set((s) => {
+                    const fresh = Object.fromEntries(apps.map((a) => [a.id, snapshot(a)]));
+                    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+                    let changed = false;
+                    const favorites = { ...s.favorites };
+                    const installed = { ...s.installed };
+                    const followed = { ...s.followed };
+                    for (const [id, app] of Object.entries(fresh)) {
+                        if (favorites[id] && !same(favorites[id], app)) (favorites[id] = app), (changed = true);
+                        if (installed[id] && !same(installed[id].app, app)) (installed[id] = { ...installed[id], app }), (changed = true);
+                        if (followed[id] && !same(followed[id].app, app)) (followed[id] = { ...followed[id], app }), (changed = true);
+                    }
+                    return changed ? { favorites, installed, followed } : s;
+                }),
             clearFavorites: () => set({ favorites: {} }),
         }),
         { name: "kaskad.library", storage: persistStorage },

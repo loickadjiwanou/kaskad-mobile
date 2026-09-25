@@ -32,6 +32,7 @@ export default function Auth() {
     const { t: tr } = useI18n();
     const user = useAuthStore((s) => s.user);
     const [mode, setMode] = useState(user?.anonymous ? "register" : "login");
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
@@ -41,12 +42,13 @@ export default function Auth() {
 
     const submit = async () => {
         setError(null);
+        if (mode === "register" && name.trim().length < 2) return setError(tr("auth.missingName"));
         if (!EMAIL_RE.test(email.trim())) return setError(tr("auth.invalidEmail"));
         if (mode === "register" && password.length < 8) return setError(tr("auth.shortPassword"));
         if (!password) return setError(tr("auth.missingPassword"));
         setBusy("email");
         try {
-            await (mode === "login" ? login(email, password) : register(email, password));
+            await (mode === "login" ? login(email, password) : register(email, password, name));
             done();
         } catch (e) {
             setError(e.message);
@@ -91,6 +93,17 @@ export default function Auth() {
                     </View>
 
                     <Card style={{ gap: spacing.md }}>
+                        {mode === "register" && (
+                            <Field
+                                label={tr("auth.name")}
+                                value={name}
+                                onChangeText={setName}
+                                placeholder={tr("auth.namePlaceholder")}
+                                maxLength={40}
+                                autoComplete="name"
+                                textContentType="name"
+                            />
+                        )}
                         <Field
                             label={tr("auth.email")}
                             value={email}

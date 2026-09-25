@@ -35,13 +35,14 @@ function DeviceBanner() {
 
 export default function Home() {
     const t = useTheme();
-    const { t: tr } = useI18n();
+    const { t: tr, lang } = useI18n();
     const { width } = useWindowDimensions();
     const cols = columnsFor(width);
     const categories = useCategories();
+    // Rechargé quand la langue change (descriptions traduites)
     const { data, error, loading, refreshing, reload, refresh } = useAsync(
         () => api.getHome({ platform: detectPlatform().target ?? undefined }),
-        [],
+        [lang],
     );
 
     // Cartes "En vedette" : 2 à 4 visibles selon la largeur (tablette paysage, desktop), une + aperçu sur téléphone

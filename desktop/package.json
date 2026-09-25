@@ -28,6 +28,14 @@
       "build/icon.png"
     ],
     "artifactName": "Kaskad-${version}-${os}-${arch}.${ext}",
+    "protocols": [
+      {
+        "name": "Kaskad",
+        "schemes": [
+          "kaskad"
+        ]
+      }
+    ],
     "win": {
       "target": [
         "nsis"

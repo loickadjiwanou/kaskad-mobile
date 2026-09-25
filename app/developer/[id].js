@@ -7,26 +7,26 @@ import Screen from "@/components/Screen";
 import ScreenHeader from "@/components/ScreenHeader";
 import { EmptyState, ErrorState, Loading } from "@/components/States";
 import { useI18n } from "@/i18n";
-import { useCategories } from "@/lib/hooks";
 import { compatibleFirst } from "@/lib/platform";
 import { useAsync } from "@/lib/useAsync";
 
-export default function Category() {
+/** Compte développeur : toutes ses apps publiées. */
+export default function Developer() {
     const { t, lang } = useI18n();
     const { id } = useLocalSearchParams();
-    const category = useCategories().find((c) => c.id === id);
     const { data, error, loading, reload, refresh, refreshing } = useAsync(
-        () => api.listApps({ category_id: id, sort: "popular", limit: 100 }),
+        () => Promise.all([api.getDeveloper(id), api.listApps({ developer_id: id, sort: "popular", limit: 100 })]),
         [id, lang], // rechargé quand la langue change (descriptions traduites)
     );
-    const items = useMemo(() => compatibleFirst(data?.items ?? []), [data]);
+    const [developer, list] = data ?? [];
+    const items = useMemo(() => compatibleFirst(list?.items ?? []), [list]);
 
     return (
         <Screen onRefresh={refresh} refreshing={refreshing}>
             <ScreenHeader
                 back
-                title={category?.name ?? t("category.fallback")}
-                subtitle={data ? t("common.apps", { count: data.total }) : undefined}
+                title={developer?.name ?? t("developer.fallback")}
+                subtitle={list ? t("common.apps", { count: list.total }) : undefined}
             />
             {loading ? (
                 <Loading />
@@ -39,7 +39,7 @@ export default function Category() {
                     ))}
                 </Grid>
             ) : (
-                <EmptyState icon="shape-outline" title={t("category.emptyTitle")} message={t("category.emptyMessage")} />
+                <EmptyState icon="account-outline" title={t("developer.emptyTitle")} message={t("developer.emptyMessage")} />
             )}
         </Screen>
     );

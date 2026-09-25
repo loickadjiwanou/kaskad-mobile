@@ -19,4 +19,11 @@ contextBridge.exposeInMainWorld("kaskad", {
     removeFile: (filePath) => ipcRenderer.invoke("kaskad:remove-file", filePath),
     sha256: (filePath) => ipcRenderer.invoke("kaskad:sha256", filePath),
     setBadge: (count) => ipcRenderer.invoke("kaskad:set-badge", count),
+
+    // Liens profonds kaskad://app/<id> reçus du système : route à ouvrir dans l'app
+    onOpenRoute: (callback) => {
+        const listener = (_event, route) => callback(route);
+        ipcRenderer.on("kaskad:open-route", listener);
+        return () => ipcRenderer.removeListener("kaskad:open-route", listener);
+    },
 });
